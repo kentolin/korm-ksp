@@ -48,10 +48,14 @@ class KormSymbolProcessor(
         // Get table name from @Table annotation or use class name
         val tableAnnotation = classDeclaration.annotations
             .find { it.shortName.asString() == "Table" }
-        val tableName = tableAnnotation?.arguments
+        val annotationTableName = tableAnnotation?.arguments
             ?.find { it.name?.asString() == "name" }
             ?.value as? String
-            ?: NameResolver.toTableName(className)
+        val tableName = if (annotationTableName.isNullOrEmpty()) {
+            NameResolver.toTableName(className)
+        } else {
+            annotationTableName
+        }
 
         // Process properties
         val columns = classDeclaration.getAllProperties()
@@ -75,15 +79,19 @@ class KormSymbolProcessor(
     private fun processProperty(property: KSPropertyDeclaration): ColumnMetadata {
         val propertyName = property.simpleName.asString()
         val kotlinType = property.type.resolve().declaration.simpleName.asString() +
-                if (property.type.resolve().isMarkedNullable) "?" else ""
+            if (property.type.resolve().isMarkedNullable) "?" else ""
 
         // Get column name from @Column annotation or use property name
         val columnAnnotation = property.annotations
             .find { it.shortName.asString() == "Column" }
-        val columnName = columnAnnotation?.arguments
+        val annotationColumnName = columnAnnotation?.arguments
             ?.find { it.name?.asString() == "name" }
             ?.value as? String
-            ?: NameResolver.toColumnName(propertyName)
+        val columnName = if (annotationColumnName.isNullOrEmpty()) {
+            NameResolver.toColumnName(propertyName)
+        } else {
+            annotationColumnName
+        }
 
         val nullable = columnAnnotation?.arguments
             ?.find { it.name?.asString() == "nullable" }
